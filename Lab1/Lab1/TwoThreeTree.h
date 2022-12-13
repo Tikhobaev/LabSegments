@@ -11,6 +11,13 @@ struct two3node
     two3node<T> * middle;                  //Child Pointers
     two3node<T> * right;
     int n;                                 //No. of keys in this node
+
+    two3node()
+    {
+        left = NULL;
+        middle = NULL;
+        right = NULL;
+    }
 };
 
 
@@ -19,7 +26,7 @@ struct two3node
 template <class T>
 struct usefulData
 {
-    T midValue;             //Will be useful only in case of split operation and will be useless in case of merge operation
+    T midValue;             // Will be useful only in case of split operation and will be useless in case of merge operation
     two3node<T> * child;
 
     usefulData()
@@ -454,10 +461,10 @@ public:
     //Wrapper Function
     bool insert(T d)
     {
-        T temp = searchFor(d);
+        // auto temp = searchFor(d);
 
-        if (temp != d)
-        {
+        // if (temp == NULL)  // TODO check
+        // {
             two3node<T>* p = root;                  //Parent Pointer (Will be used for rotation purposes)
 
             usefulData<T> s1 = insert(root, d, p);
@@ -477,12 +484,11 @@ public:
             }
 
             return true;
-        }
-
+        /*}
         else
             cout << "\nThe current item is already present.\n";
 
-        return false;
+        return false;*/
     }
 
 
@@ -699,12 +705,6 @@ public:
 
 
 
-
-
-
-    /*------------------- Deletion Function -------------------*/
-
-
     /*------------------- Merge Function -------------------*/
 
     usefulData<T> merge(two3node<T>* p, two3node<T>* &r, two3node<T>* child)
@@ -777,12 +777,6 @@ public:
 
         return (child);
     }
-
-
-
-
-
-
 
 
     //Main Wrapper Function
@@ -1020,47 +1014,40 @@ public:
     }
 
 
-
-
-
-
     /*------------------- Lookup Function -------------------*/
 
     //Wrapper Function
-    T searchFor(T item)
+    two3node<T>* searchFor(T item)
     {
         return search(root, item);
     }
 
 
     //Recursive Function
-    T search(two3node<T>* r, T d)
+    two3node<T>* search(two3node<T>* r, T d)
     {
         if (r != NULL)
         {
-            if (r->n == 1)            //Two Node
+            if (r->n == 1)            // Two Node
             {
                 if (d == r->k1)
-                    return r->k1;
+                    return r;
 
                 else if (d < r->k1)
                 {
                     return search(r->left, d);
-                }
-
-                else
-                {
+                } else {
                     return search(r->middle, d);
                 }
             }
 
-            else                        //Three Node
+            else                        // Three Node
             {
                 if (d == r->k1)
-                    return r->k1;
+                    return r;
 
                 else if (d == r->k2)
-                    return r->k2;
+                    return r;
 
                 else if (d < r->k1)
                 {
@@ -1078,8 +1065,94 @@ public:
         }
 
         else
-            return -99999999;       //An exception has to be thrown here
+            return NULL;       // An exception has to be thrown here
     }
+    
+    two3node<T>* findParentOfLeftNode(two3node<T>* r, T d)
+    {
+        if (r != NULL)
+        {
+            if (r->n == 1)            // Two Node
+            {
+                if (r->left && d == r->left->k1)
+                    return r;
+
+                else if (d < r->k1)
+                {
+                    return findParentOfLeftNode(r->left, d);
+                }
+                else {
+                    return findParentOfLeftNode(r->middle, d);
+                }
+            }
+
+            else                        // Three Node
+            {
+                if (r->left && d == r->left->k1)
+                    return r;
+
+                else if (d < r->k1)
+                {
+                    return findParentOfLeftNode(r->left, d);
+                }
+
+                else if (d < r->k2)
+                {
+                    return findParentOfLeftNode(r->middle, d);
+                }
+
+                else
+                    return findParentOfLeftNode(r->right, d);
+            }
+        }
+        else
+            return NULL;       // An exception has to be thrown here
+    }
+
+   T* next(T item) {
+        auto r = search(root, item);
+
+        if (r->n == 1) {  // two node
+            if (r->middle) {
+                return &r->middle->k1;
+            }
+        }
+        else {  // three node
+            if (r->k1 == item) {  // left key
+                return &r->k2;
+            }
+            else {  // right key
+                return &r->right->k1;
+            }
+            
+        }
+        return NULL;
+    }
+
+    T* prev(T item) {
+        auto r = search(root, item);
+
+        if (r->n == 1) {  // two node
+            auto foundParent = findParentOfLeftNode(root, item);
+            if (foundParent == NULL) return NULL;
+            return &foundParent->k1;
+        }
+        else {  // three node
+            if (r->k1 == item) {  // left key
+                auto foundParent = findParentOfLeftNode(root, item);
+                if (foundParent == NULL) return NULL;
+                return &foundParent->k1;
+            }
+            else {  // right key
+                return &r->left->k1;
+            }
+
+        }
+        return NULL;
+    }
+
+
+
 
     /*------------------- Utility Functions -------------------*/
 

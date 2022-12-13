@@ -9,6 +9,7 @@
 #include "TwoThreeTree.h"
 
 # define not_found -1
+#define PI 3.14159265
 
 using std::swap;
 using std::min;
@@ -38,15 +39,19 @@ struct seg {
     }
 
     bool operator <(const seg& rhs) {
-        return p.y < rhs.p.y;
+        return q.y < rhs.q.y;
     }
 
     bool operator >(const seg& rhs) {
-        return p.y > rhs.p.y;
+        return q.y > rhs.q.y;
     }
 
     bool operator ==(const seg& rhs) {
-        return p.y == rhs.p.y;
+        return q.y == rhs.q.y;
+    }
+
+    bool operator !=(const seg& rhs) {
+        return q.y != rhs.q.y;
     }
 };
 
@@ -120,8 +125,6 @@ pair<int, int> solve(vector<seg> & a) {
     }
     sort(e.begin(), e.end());
 
-    // s.clear();
-    // where.resize(a.size());
     for (size_t i = 0; i < e.size(); ++i) {
         int id = e[i].id;
         auto current_event = e[i];
@@ -150,12 +153,48 @@ pair<int, int> solve(vector<seg> & a) {
     return make_pair(-1, -1);
 }
 
-//vector<seg>& generateVector(int size) {
-//    vector<seg> output  ;
-//    for (int i = 0; i < size; i++) {
-//        output.push_back();
-//    }
-//}
+
+inline seg* prev23(seg& x, two3Tree<seg>& tree) {
+    return tree.prev(x);
+}
+
+inline seg* next23(seg& x, two3Tree<seg>& tree) {
+    return tree.next(x);
+}
+
+pair<int, int> solve23tree(vector<seg> & a) {
+    two3Tree<seg> tree;
+    int n = (int)a.size();
+    vector<event> e;
+    for (int i = 0; i < n; ++i) {
+        e.push_back(event(min(a[i].p.x, a[i].q.x), +1, i));
+        e.push_back(event(max(a[i].p.x, a[i].q.x), -1, i));
+    }
+    sort(e.begin(), e.end());
+
+    for (size_t i = 0; i < e.size(); ++i) {
+        int id = e[i].id;
+        auto current_event = e[i];
+        if (e[i].tp == +1) {
+            tree.insert(a[id]);
+            auto nxt = next23(a[id], tree);
+            auto prv = prev23(a[id], tree);
+            if (nxt != NULL && intersect(*nxt, a[id]))
+                return make_pair(nxt->id, id);
+            if (prv != NULL && intersect(*prv, a[id]))
+                return make_pair(prv->id, id);
+        }
+        else {
+            auto nxt = next23(a[id], tree);
+            auto prv = prev23(a[id], tree);
+            if (prv != NULL && nxt != NULL && intersect(*nxt, *prv))
+                return make_pair(prv->id, nxt->id);
+            tree.deleteNode(a[id]);
+        }
+    }
+
+    return make_pair(-1, -1);
+}
 
 
 void test23() {
@@ -196,7 +235,7 @@ void test23() {
             cout << "\nEnter the data element which is to be searched : ";
             cin >> data;
     
-            if (tree1.searchFor(data) != -99999999)
+            if (tree1.searchFor(data) != NULL)
                 cout << "\nThe element is found. ";
             else
                 cout << "\nThe element is not found. ";
@@ -247,6 +286,79 @@ vector<seg>* generateDataFirstApproach(int size) {
     return output;
 }
 
+// Generate segments with start and end points in square angles with a = 1
+vector<seg>* generateDataFirstApproachNNotIntersected(int size, int numNotIntersected) {
+    vector<seg>* output = new vector<seg>;
+    for (int i = 0; i < numNotIntersected; i++) {
+        double start_x, start_y, end_x, end_y;
+        int squareBottomLeftPoint = i * 2;
+        int startPoint = rand() % 4; // 1 - bottom left, 2 - br, 3 - upper left, 4 - ur
+        vector<pair<double, double>> squarePoints{
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint),          // BL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint),      // BR
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint + 1),      // UL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint + 1)   // UR
+        };
+        start_x = squarePoints[startPoint].first;
+        start_y = squarePoints[startPoint].second;
+        squarePoints.erase(squarePoints.begin() + startPoint);
+
+        int endPoint = rand() % 3; // remaining 3 points
+        end_x = squarePoints[endPoint].first;
+        end_y = squarePoints[endPoint].second;
+        // cout << "{ (" << start_x << ", " << start_y << "), (" << end_x << ", " << end_y << ") }";
+        output->push_back(seg{ pt{start_x, start_y}, pt{end_x, end_y}, i });
+    }
+
+    int offset = numNotIntersected * 2;
+
+    for (int i = numNotIntersected; i < size; i++) {
+        double start_x, start_y, end_x, end_y;
+        int squareBottomLeftPoint = offset + rand() % 1000;
+        int startPoint = rand() % 4; // 1 - bottom left, 2 - br, 3 - upper left, 4 - ur
+        vector<pair<double, double>> squarePoints{
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint),          // BL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint),      // BR
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint + 1),      // UL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint + 1)   // UR
+        };
+        start_x = squarePoints[startPoint].first;
+        start_y = squarePoints[startPoint].second;
+        squarePoints.erase(squarePoints.begin() + startPoint);
+
+        int endPoint = rand() % 3; // remaining 3 points
+        end_x = squarePoints[endPoint].first;
+        end_y = squarePoints[endPoint].second;
+        // cout << "{ (" << start_x << ", " << start_y << "), (" << end_x << ", " << end_y << ") }";
+        output->push_back(seg{ pt{start_x, start_y}, pt{end_x, end_y}, i });
+    }
+    return output;
+}
+
+// Generate segments with start and end points in square angles with a = 1
+vector<seg>* generateDataSecondApproach(int size, int len) {
+    vector<seg>* output = new vector<seg>;
+    for (int i = 0; i < size; i++) {
+        double start_x, start_y, end_x, end_y;
+        int squareBottomLeftPoint = rand() % 1000;
+        int startPoint = rand() % 4; // 1 - bottom left, 2 - br, 3 - upper left, 4 - ur
+        vector<pair<double, double>> squarePoints{
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint),          // BL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint),      // BR
+            make_pair(squareBottomLeftPoint, squareBottomLeftPoint + 1),      // UL
+            make_pair(squareBottomLeftPoint + 1, squareBottomLeftPoint + 1)   // UR
+        };
+        start_x = squarePoints[startPoint].first;
+        start_y = squarePoints[startPoint].second;
+        
+        int angle = (rand() % 90) * PI / 180;
+        end_x = cos(angle) * len + start_x;
+        end_y = sin(angle) * len + start_y;
+        output->push_back(seg{ pt{start_x, start_y}, pt{end_x, end_y}, i });
+    }
+    return output;
+}
+
 void test() {
     for (int i = 1000; i <= 10000; i += 1000) {
         cout << "N = " << i << endl;
@@ -264,7 +376,7 @@ void test() {
     }
 }
 
-void testFirstApproach() {
+void testFirstApproachAvl() {
     for (int i = 1000; i <= 10000; i += 1000) {
         cout << "N = " << i << endl;
         auto data = generateDataFirstApproach(i);
@@ -283,8 +395,84 @@ void testFirstApproach() {
     }
 }
 
+void testFirstApproachNNotIntersectedAvl() {
+    for (int i = 1000; i <= 10000; i += 1000) {
+        cout << "N = " << i << endl;
+        auto data = generateDataFirstApproachNNotIntersected(i, i - 100);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto result = solve(*data);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        if (result.first == -1 && result.second == -1) {
+            cout << "No intersecting segments" << endl;
+        }
+        else {
+            cout << "Found intersecting lines, ids: " << result.first << ", " << result.second << endl;
+            cout << "{ (" << (*data)[result.first].p.x << ", " << (*data)[result.first].p.y << "), (" << (*data)[result.first].q.x << ", " << (*data)[result.first].q.y << ") }, ";
+            cout << "{ (" << (*data)[result.second].p.x << ", " << (*data)[result.second].p.y << "), (" << (*data)[result.second].q.x << ", " << (*data)[result.second].q.y << ") }" << endl;
+        }
+        std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
+    }
+}
+
+void testFirstApproach23() {
+    for (int i = 1000; i <= 10000; i += 1000) {
+        cout << "N = " << i << endl;
+        auto data = generateDataFirstApproach(i);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto result = solve23tree(*data);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        if (result.first == -1 && result.second == -1) {
+            cout << "No intersecting segments" << endl;
+        }
+        else {
+            cout << "Found intersecting lines, ids: " << result.first << ", " << result.second << endl;
+            cout << "{ (" << (*data)[result.first].p.x << ", " << (*data)[result.first].p.y << "), (" << (*data)[result.first].q.x << ", " << (*data)[result.first].q.y << ") }, ";
+            cout << "{ (" << (*data)[result.second].p.x << ", " << (*data)[result.second].p.y << "), (" << (*data)[result.second].q.x << ", " << (*data)[result.second].q.y << ") }" << endl;
+        }
+        std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
+    }
+}
+
+void testSecondApproachAvl() {
+    for (int i = 1000; i <= 10000; i += 1000) {
+        cout << "N = " << i << endl;
+        auto data = generateDataSecondApproach(i, 10);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto result = solve(*data);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        if (result.first == -1 && result.second == -1) {
+            cout << "No intersecting segments" << endl;
+        }
+        else {
+            cout << "Found intersecting lines, ids: " << result.first << ", " << result.second << endl;
+            cout << "{ (" << (*data)[result.first].p.x << ", " << (*data)[result.first].p.y << "), (" << (*data)[result.first].q.x << ", " << (*data)[result.first].q.y << ") }, ";
+            cout << "{ (" << (*data)[result.second].p.x << ", " << (*data)[result.second].p.y << "), (" << (*data)[result.second].q.x << ", " << (*data)[result.second].q.y << ") }" << endl;
+        }
+        std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
+    }
+}
+
+void testSecondApproach23() {
+    for (int i = 1000; i <= 10000; i += 1000) {
+        cout << "N = " << i << endl;
+        auto data = generateDataSecondApproach(i, 10);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto result = solve23tree(*data);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        if (result.first == -1 && result.second == -1) {
+            cout << "No intersecting segments" << endl;
+        }
+        else {
+            cout << "Found intersecting lines, ids: " << result.first << ", " << result.second << endl;
+            cout << "{ (" << (*data)[result.first].p.x << ", " << (*data)[result.first].p.y << "), (" << (*data)[result.first].q.x << ", " << (*data)[result.first].q.y << ") }, ";
+            cout << "{ (" << (*data)[result.second].p.x << ", " << (*data)[result.second].p.y << "), (" << (*data)[result.second].q.x << ", " << (*data)[result.second].q.y << ") }" << endl;
+        }
+        std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
+    }
+}
+
 int main() {
-    /*test23();
+    // test23();
 
     vector<seg> input = {
         seg{pt {2, 2}, pt {5, 5}, 0},
@@ -294,7 +482,8 @@ int main() {
         seg{pt {8, 1}, pt {11, 3}, 4},
         seg{pt {11, 4}, pt {13, 2}, 5}
     };
-    auto result = solve(input);
+    // auto result = solve(input);
+    /*auto result = solve23tree(input);
     if (result.first == -1 && result.second == -1) {
         cout << "No intersecting segments" << endl;
     }
@@ -302,5 +491,9 @@ int main() {
         cout << "Found intersecting lines, ids: " << result.first << ", " << result.second << endl;
     }*/
     // test();
-    testFirstApproach();
+    // testFirstApproachAvl();
+    // testFirstApproach23();
+    // testSecondApproach23();
+    // testSecondApproachAvl();
+    testFirstApproachNNotIntersectedAvl();
 }
